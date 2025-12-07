@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Savaş Oyunu - Sonsuz Mod</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            cursor: crosshair;
+        }
+        canvas {
+            display: block;
+        }
+
+        /* ANA MENÜ BUTONU (SOL ÜST) */
+        .home-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            border: 2px solid rgba(255,255,255,0.2);
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        .home-button:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+
+        /* MEVCUT PUAN (BUTONUN ALTINA ALINDI) */
+        #ui-layer {
+            position: absolute;
+            top: 70px; /* Butonun altına gelmesi için aşağı ittik */
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        /* EN YÜKSEK SKORLAR (SAĞ ÜST) */
+        #high-scores {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            text-align: right;
+            pointer-events: none;
+            text-shadow: 2px 2px 4px #000;
+        }
+        #high-scores h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #fff;
+            text-transform: uppercase;
+            border-bottom: 2px solid #e74c3c;
+            display: inline-block;
+        }
+        #high-scores ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 18px;
+        }
+        #high-scores li {
+            margin-bottom: 5px;
+        }
+        
+        .rank-color { color: #ff6b6b; font-weight: bold; margin-right: 8px; }
+        .score-color { color: #f1c40f; font-weight: bold; }
+
+        /* OYUN BİTTİ EKRANI */
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            display: none;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #e74c3c;
+            box-shadow: 0 0 30px rgba(231, 76, 60, 0.6);
+            z-index: 10;
+        }
+        button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="../../index.html" class="home-button">🏠 Ana Menü</a>
+
+    <div id="ui-layer">Puan: <span id="score">0</span></div>
+
+    <div id="high-scores">
+        <h3>En Yüksek 3</h3>
+        <ul id="high-score-list"></ul>
+    </div>
+
+    <div id="game-over">
+        <h1 style="margin-top: 0; color: #e74c3c;">OYUN BİTTİ!</h1>
+        <p style="font-size: 1.2rem;">Son Puanın: <span id="final-score" style="font-weight: bold; color: #f1c40f;">0</span></p>
+        <button onclick="location.reload()">🔄 Tekrar Oyna</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const gameOverEl = document.getElementById('game-over');
+        const finalScoreEl = document.getElementById('final-score');
+        const highScoreListEl = document.getElementById('high-score-list');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let isGameOver = false;
+        let frameCount = 0;
+        let speedMultiplier = 1.0;
+
+        const mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = event.clientX;
+            mouse.y = event.clientY;
+        });
+
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 20,
+            color: '#3498db',
+            speed: 5
+        };
+
+        const bullets = [];
+        const enemies = [];
+
+        window.addEventListener('mousedown', () => {
+            if (!isGameOver) shootBullet();
+        });
+
+        const keys = {};
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+        loadHighScores();
+
+        // 30 saniyede bir düşmanları hızlandır
+        setInterval(() => {
+            if (!isGameOver) {
+                speedMultiplier += 0.1;
+            }
+        }, 30000);
+
+        function shootBullet() {
+            const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+            bullets.push({
+                x: player.x,
+                y: player.y,
+                radius: 5,
+                color: '#f1c40f',
+                velocity: {
+                    x: Math.cos(angle) * 12,
+                    y: Math.sin(angle) * 12
+                }
+            });
+        }
+
+        function spawnEnemy() {
+            const radius = Math.random() * 15 + 15;
+            let x, y;
+            const side = Math.floor(Math.random() * 4);
+
+            switch(side) {
+                case 0: x = Math.random() * canvas.width; y = -radius; break;
+                case 1: x = canvas.width + radius; y = Math.random() * canvas.height; break;
+                case 2: x = Math.random() * canvas.width; y = canvas.height + radius; break;
+                case 3: x = -radius; y = Math.random() * canvas.height; break;
+            }
+
+            enemies.push({
+                x: x,
+                y: y,
+                radius: radius,
+                color: `hsl(${Math.random() * 360}, 50%, 50%)`,
+                speed: (Math.random() * 1 + 1) * speedMultiplier
+            });
+        }
+
+        function update() {
+            if (isGameOver) return;
+
+            // --- OYUNCU HAREKETİ ---
+            if (keys['ArrowUp'] || keys['KeyW']) player.y -= player.speed;
+            if (keys['ArrowDown'] || keys['KeyS']) player.y += player.speed;
+            if (keys['ArrowLeft'] || keys['KeyA']) player.x -= player.speed;
+            if (keys['ArrowRight'] || keys['KeyD']) player.x += player.speed;
+
+            // --- EKRAN GEÇİŞİ (WRAP AROUND) ÖZELLİĞİ ---
+            // Eğer sağdan çıkarsa, soldan geri girsin
+            if (player.x - player.radius > canvas.width) {
+                player.x = -player.radius;
+            }
+            // Eğer soldan çıkarsa, sağdan geri girsin
+            else if (player.x + player.radius < 0) {
+                player.x = canvas.width + player.radius;
+            }
+            // Eğer alttan çıkarsa, üstten geri girsin
+            if (player.y - player.radius > canvas.height) {
+                player.y = -player.radius;
+            }
+            // Eğer üstten çıkarsa, alttan geri girsin
+            else if (player.y + player.radius < 0) {
+                player.y = canvas.height + player.radius;
+            }
+            // -------------------------------------------
+
+            // Mermileri Güncelle
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.velocity.x;
+                b.y += b.velocity.y;
+
+                if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            frameCount++;
+            if (frameCount % 100 === 0) spawnEnemy();
+
+            // Düşmanları Güncelle
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                const angle = Math.atan2(player.y - e.y, player.x - e.x);
+                e.x += Math.cos(angle) * e.speed;
+                e.y += Math.sin(angle) * e.speed;
+
+                const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+                if (distToPlayer - e.radius - player.radius < 1) endGame();
+
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    const b = bullets[j];
+                    const distToBullet = Math.hypot(b.x - e.x, b.y - e.y);
+                    if (distToBullet - e.radius - b.radius < 1) {
+                        score += 10;
+                        scoreEl.innerText = score;
+                        enemies.splice(i, 1);
+                        bullets.splice(j, 1);
+                        break;
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#1a1a1a'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Oyuncu
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = player.color;
+            ctx.fill();
+
+            // Namlu
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+            ctx.rotate(angle);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, -5, 30, 10);
+            ctx.restore();
+
+            // Mermiler
+            for (const b of bullets) {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = b.color;
+                ctx.fill();
+            }
+
+            // Düşmanlar
+            for (const e of enemies) {
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = e.color;
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+        function loadHighScores() {
+            const scores = JSON.parse(localStorage.getItem('tankGameScores')) || [];
+            updateScoreBoard(scores);
+        }
+
+        function saveScore(newScore) {
+            let scores = JSON.parse(localStorage.getItem('tankGameScores')) || [];
+            scores.push(newScore);
+            scores.sort((a, b) => b - a);
+            scores = scores.slice(0, 3);
+            localStorage.setItem('tankGameScores', JSON.stringify(scores));
+            updateScoreBoard(scores);
+        }
+
+        function updateScoreBoard(scores) {
+            const displayScores = [...scores];
+            while (displayScores.length < 3) {
+                displayScores.push('-');
+            }
+
+            highScoreListEl.innerHTML = displayScores.map((s, index) => 
+                `<li>
+                    <span class="rank-color">${index + 1}.</span> 
+                    <span class="score-color">${s}</span>
+                </li>`
+            ).join('');
+        }
+
+        function endGame() {
+            isGameOver = true;
+            gameOverEl.style.display = 'block';
+            finalScoreEl.innerText = score;
+            saveScore(score);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            update();
+            draw();
+        }
+
+        animate();
+    </script>
+</body>
+</html>

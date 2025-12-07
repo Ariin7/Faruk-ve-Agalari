@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yılan Oyunu - Sonsuz Mod</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: 32px;
+            color: #4CAF50;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+
+        canvas {
+            border: 2px solid #4CAF50;
+            background-color: #000;
+            box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
+            border-radius: 10px;
+        }
+
+        /* ANA MENÜ BUTONU (SOL ÜST) */
+        .home-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: all 0.3s;
+        }
+        .home-button:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+
+        #scoreBoard {
+            margin-top: 15px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .controls {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        /* EN YÜKSEK SKORLAR (SAĞ ÜST) */
+        #high-scores {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            text-align: right;
+            pointer-events: none;
+            text-shadow: 2px 2px 4px #000;
+        }
+        #high-scores h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #fff;
+            text-transform: uppercase;
+            border-bottom: 2px solid #4CAF50;
+            display: inline-block;
+        }
+        #high-scores ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 18px;
+        }
+        #high-scores li {
+            margin-bottom: 5px;
+        }
+        .rank-color { color: #ff6b6b; font-weight: bold; margin-right: 8px; }
+        .score-color { color: #f1c40f; font-weight: bold; }
+
+        /* OYUN BİTTİ EKRANI */
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            display: none; /* Başlangıçta gizli */
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 30px rgba(76, 175, 80, 0.6);
+            z-index: 10;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="../../index.html" class="home-button">🏠 Ana Menü</a>
+
+    <div id="high-scores">
+        <h3>En Yüksek 3</h3>
+        <ul id="high-score-list"></ul>
+    </div>
+
+    <h1>🐍 Yılan Oyunu</h1>
+    
+    <div id="game-over">
+        <h1 style="margin-top: 0; color: #4CAF50;">OYUN BİTTİ!</h1>
+        <p style="font-size: 1.2rem;">Son Puanın: <span id="final-score" style="font-weight: bold; color: #f1c40f;">0</span></p>
+        <button onclick="location.reload()">🔄 Tekrar Oyna</button>
+    </div>
+
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="scoreBoard">Puan: 0</div>
+    <div class="controls">Yön tuşları ile hareket et, duvarlardan geçebilirsin!</div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const highScoreListEl = document.getElementById('high-score-list');
+        const gameOverEl = document.getElementById('game-over');
+        const finalScoreEl = document.getElementById('final-score');
+        
+        let speed = 7;
+        let tileCount = 20; 
+        let tileSize = canvas.width / tileCount - 2; 
+        
+        let headX = 10;
+        let headY = 10;
+        
+        let xVelocity = 0;
+        let yVelocity = 0;
+
+        let appleX = 5;
+        let appleY = 5;
+
+        const snakeParts = [];
+        let tailLength = 2;
+
+        let score = 0;
+        let isGameRunning = true;
+
+        // Başlangıçta skorları yükle
+        loadHighScores();
+
+        function drawGame() {
+            if (!isGameRunning) return;
+
+            changeSnakePosition();
+            
+            // Oyun bitti kontrolü (Sadece kendine çarpma)
+            let result = isGameOver();
+            if (result) {
+                endGame();
+                return;
+            }
+
+            clearScreen();
+            checkAppleCollision();
+            drawApple();
+            drawSnake();
+            drawScore();
+
+            setTimeout(drawGame, 1000 / speed);
+        }
+
+        function isGameOver() {
+            let gameOver = false;
+
+            if (yVelocity === 0 && xVelocity === 0) {
+                return false;
+            }
+
+            // DİKKAT: Duvar kontrolünü kaldırdık (Sonsuz Harita için)
+            // Sadece kendine çarpma kontrolü kaldı
+            for (let i = 0; i < snakeParts.length; i++) {
+                let part = snakeParts[i];
+                if (part.x === headX && part.y === headY) {
+                    gameOver = true;
+                    break;
+                }
+            }
+
+            return gameOver;
+        }
+
+        function drawScore() {
+            document.getElementById("scoreBoard").innerText = "Puan: " + score;
+        }
+
+        function clearScreen() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawSnake() {
+            ctx.fillStyle = '#4CAF50'; // Yılan gövdesi yeşil
+            for (let i = 0; i < snakeParts.length; i++) {
+                let part = snakeParts[i];
+                ctx.fillRect(part.x * canvas.width / tileCount, part.y * canvas.height / tileCount, tileSize, tileSize);
+            }
+
+            snakeParts.push(new SnakePart(headX, headY));
+            while (snakeParts.length > tailLength) {
+                snakeParts.shift();
+            }
+
+            ctx.fillStyle = '#66bb6a'; // Yılan başı biraz daha açık yeşil
+            ctx.fillRect(headX * canvas.width / tileCount, headY * canvas.height / tileCount, tileSize, tileSize);
+        }
+
+        function changeSnakePosition() {
+            headX = headX + xVelocity;
+            headY = headY + yVelocity;
+
+            // --- DUVARLARDAN GEÇME (WRAP AROUND) ---
+            if (headX < 0) {
+                headX = tileCount - 1;
+            } else if (headX >= tileCount) {
+                headX = 0;
+            }
+
+            if (headY < 0) {
+                headY = tileCount - 1;
+            } else if (headY >= tileCount) {
+                headY = 0;
+            }
+            // ----------------------------------------
+        }
+
+        function drawApple() {
+            ctx.fillStyle = "red";
+            ctx.fillRect(appleX * canvas.width / tileCount, appleY * canvas.height / tileCount, tileSize, tileSize);
+        }
+
+        function checkAppleCollision() {
+            if (appleX === headX && appleY === headY) {
+                appleX = Math.floor(Math.random() * tileCount);
+                appleY = Math.floor(Math.random() * tileCount);
+                tailLength++;
+                score += 10;
+                // Oyun biraz hızlansın
+                if(speed < 20) speed += 0.2;
+            }
+        }
+
+        // --- SKOR TABLOSU İŞLEMLERİ ---
+        function loadHighScores() {
+            const scores = JSON.parse(localStorage.getItem('snakeGameScores')) || [];
+            updateScoreBoard(scores);
+        }
+
+        function saveScore(newScore) {
+            let scores = JSON.parse(localStorage.getItem('snakeGameScores')) || [];
+            scores.push(newScore);
+            scores.sort((a, b) => b - a);
+            scores = scores.slice(0, 3); // İlk 3'ü tut
+            localStorage.setItem('snakeGameScores', JSON.stringify(scores));
+            updateScoreBoard(scores);
+        }
+
+        function updateScoreBoard(scores) {
+            const displayScores = [...scores];
+            while (displayScores.length < 3) {
+                displayScores.push('-');
+            }
+
+            highScoreListEl.innerHTML = displayScores.map((s, index) => 
+                `<li>
+                    <span class="rank-color">${index + 1}.</span> 
+                    <span class="score-color">${s}</span>
+                </li>`
+            ).join('');
+        }
+
+        function endGame() {
+            isGameRunning = false;
+            finalScoreEl.innerText = score;
+            gameOverEl.style.display = 'block'; // Menüyü göster
+            saveScore(score);
+        }
+
+        document.body.addEventListener('keydown', keyDown);
+
+        function keyDown(event) {
+            // Yukarı
+            if (event.keyCode == 38) {
+                if (yVelocity == 1) return;
+                yVelocity = -1;
+                xVelocity = 0;
+            }
+            // Aşağı
+            if (event.keyCode == 40) {
+                if (yVelocity == -1) return;
+                yVelocity = 1;
+                xVelocity = 0;
+            }
+            // Sol
+            if (event.keyCode == 37) {
+                if (xVelocity == 1) return;
+                yVelocity = 0;
+                xVelocity = -1;
+            }
+            // Sağ
+            if (event.keyCode == 39) {
+                if (xVelocity == -1) return;
+                yVelocity = 0;
+                xVelocity = 1;
+            }
+        }
+
+        class SnakePart {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+        }
+
+        drawGame();
+    </script>
+</body>
+</html>

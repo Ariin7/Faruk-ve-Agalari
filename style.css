@@ -1,0 +1,137 @@
+/* GENEL SIFIRLAMA VE TEMEL AYARLAR */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #121212; /* Koyu Arka Plan */
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+/* BAŞLIK KISMI */
+header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+h1 {
+    font-size: 3rem;
+    color: #bb86fc; /* Neon Mor */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px rgba(187, 134, 252, 0.3);
+}
+
+header p {
+    color: #a0a0a0;
+    font-size: 1.2rem;
+}
+
+/* OYUNLARIN DURDUĞU KUTU (GRID YAPISI) */
+.oyun-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px; /* Kutular arası boşluk */
+    max-width: 1200px;
+    width: 100%;
+    margin-bottom: auto; /* Footer'ı en alta itmek için */
+}
+
+/* TEKİL OYUN KARTI */
+.oyun-kutusu {
+    background-color: #1e1e1e; /* Kart rengi */
+    width: 280px;
+    border-radius: 16px;
+    overflow: hidden; /* Köşelerden taşmayı engelle */
+    text-decoration: none; /* Link çizgisini kaldır */
+    color: white;
+    transition: all 0.3s ease;
+    border: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* KART ÜZERİNE GELME EFEKTİ (HOVER) */
+.oyun-kutusu:hover {
+    transform: translateY(-10px); /* Kart yukarı kalkar */
+    border-color: #bb86fc; /* Çerçeve mor olur */
+    box-shadow: 0 10px 25px rgba(187, 134, 252, 0.25); /* Arkaya ışık verir */
+    background-color: #252525;
+}
+
+/* İKON ALANI */
+.ikon-alani {
+    height: 120px;
+    background-color: #2c2c2c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    transition: transform 0.3s;
+}
+
+.oyun-kutusu:hover .ikon-alani {
+    transform: scale(1.1); /* İkon hafif büyür */
+}
+
+/* METİN VE BUTON ALANI */
+.metin-alani {
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.oyun-adi {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+}
+
+.oyun-aciklama {
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    margin-bottom: 10px;
+}
+
+/* BUTON TASARIMI */
+.oyna-buton {
+    background-color: #03dac6; /* Turkuaz */
+    color: #000;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    transition: background 0.3s;
+}
+
+.oyun-kutusu:hover .oyna-buton {
+    background-color: #bb86fc; /* Üzerine gelince mor olur */
+    color: white;
+}
+
+/* ALT BİLGİ (FOOTER) */
+footer {
+    margin-top: 50px;
+    color: #555;
+    font-size: 0.8rem;
+}
+
+/* MOBİL UYUMLULUK */
+@media (max-width: 600px) {
+    h1 { font-size: 2rem; }
+    .oyun-container { gap: 20px; }
+    .oyun-kutusu { width: 100%; max-width: 350px; }
+}
